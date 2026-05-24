@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: canteen-automation
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGO_URI
+        sync: false

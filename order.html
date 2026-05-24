@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Food</title>
+    <link rel="stylesheet" href="modern_luxe.css">
+    <style>
+        body {
+            padding-top: 110px;
+        }
+
+        .order-container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto 50px;
+        }
+
+        .hero-banner {
+            background: linear-gradient(180deg, rgba(6, 9, 19, 0.4) 0%, rgba(6, 9, 19, 0.9) 100%),
+                        url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1350') center/cover;
+            height: 200px;
+        }
+
+        .hero-banner h1 {
+            font-family: 'Shadows Into Light', cursive;
+            font-size: 48px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 15px;
+            padding: 30px 0 10px;
+            border-bottom: 1px solid var(--glass-border);
+            margin-bottom: 18px;
+        }
+
+        .tabs button {
+            padding: 12px 28px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            color: var(--text-muted);
+            box-shadow: none;
+        }
+
+        .tabs button:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.07);
+        }
+
+        .tabs button.active {
+            background: var(--primary-gradient);
+            color: var(--text-main);
+            border-color: transparent;
+            box-shadow: var(--indigo-glow);
+        }
+
+        .time-note {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .food-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 25px;
+        }
+
+        .food-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 25px 20px;
+            text-align: center;
+        }
+
+        .food-card h3 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 6px;
+        }
+
+        .food-card p {
+            font-size: 16px;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 18px;
+        }
+
+        .food-card button {
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="animate-fade">
+
+<nav>
+    <div class="logo">Canteen <span style="background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Automation</span></div>
+    <div class="nav-links">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="order.html" class="active-link">Order Food</a>
+        <a href="status.html">Order Status</a>
+        <a href="feedback.html">Feedback</a>
+        <a class="logout" onclick="logout()" style="color:#f43f5e; cursor:pointer;">Logout</a>
+    </div>
+</nav>
+
+<div class="order-container">
+    <div class="hero-section hero-banner">
+        <div class="hero-content">
+            <h1>Choose Your Meal</h1>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <button id="breakfast-tab" onclick="showSection('breakfast', this)">Breakfast</button>
+        <button id="lunch-tab" onclick="showSection('lunch', this)">Lunch</button>
+        <button id="tea-tab" onclick="showSection('tea', this)">Tea</button>
+    </div>
+
+    <div class="time-note" id="timeNote"></div>
+
+    <div id="breakfast" class="section">
+        <div class="food-grid" id="breakfast-grid">
+            <div class="glass-card food-card"><h3>Idly</h3><p>Rs.30.00</p><button onclick="orderItem('Idly', 30)">Order</button></div>
+            <div class="glass-card food-card"><h3>Dosa</h3><p>Rs.40.00</p><button onclick="orderItem('Dosa', 40)">Order</button></div>
+            <div class="glass-card food-card"><h3>Vada</h3><p>Rs.25.00</p><button onclick="orderItem('Vada', 25)">Order</button></div>
+            <div class="glass-card food-card"><h3>Poori</h3><p>Rs.35.00</p><button onclick="orderItem('Poori', 35)">Order</button></div>
+            <div class="glass-card food-card"><h3>Pongal</h3><p>Rs.40.00</p><button onclick="orderItem('Pongal', 40)">Order</button></div>
+        </div>
+    </div>
+
+    <div id="lunch" class="section">
+        <div class="food-grid" id="lunch-grid">
+            <div class="glass-card food-card"><h3>Full Meals</h3><p>Rs.80.00</p><button onclick="orderItem('Full Meals', 80)">Order</button></div>
+            <div class="glass-card food-card"><h3>Veg Biryani</h3><p>Rs.90.00</p><button onclick="orderItem('Veg Biryani', 90)">Order</button></div>
+            <div class="glass-card food-card"><h3>Fried Rice</h3><p>Rs.70.00</p><button onclick="orderItem('Fried Rice', 70)">Order</button></div>
+        </div>
+    </div>
+
+    <div id="tea" class="section">
+        <div class="food-grid" id="tea-grid">
+            <div class="glass-card food-card"><h3>Tea</h3><p>Rs.10.00</p><button onclick="orderItem('Tea', 10)">Order</button></div>
+            <div class="glass-card food-card"><h3>Coffee</h3><p>Rs.15.00</p><button onclick="orderItem('Coffee', 15)">Order</button></div>
+            <div class="glass-card food-card"><h3>Samosa</h3><p>Rs.20.00</p><button onclick="orderItem('Samosa', 20)">Order</button></div>
+        </div>
+    </div>
+</div>
+
+<script src="format_money.js"></script>
+<script>
+    window.onload = function() {
+        applyTimeBasedMenu();
+        loadAdminItems();
+    };
+
+    function showSection(id, btn) {
+        if (btn && btn.style.display === 'none') return;
+        document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+        document.querySelectorAll('.tabs button').forEach(button => button.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    function applyTimeBasedMenu() {
+        const now = new Date();
+        const minutes = now.getHours() * 60 + now.getMinutes();
+        const canShowBreakfast = minutes >= 8 * 60 && minutes <= 11 * 60 + 30;
+        const canShowLunch = minutes >= 12 * 60 && minutes <= 14 * 60 + 30;
+        const breakfastTab = document.getElementById('breakfast-tab');
+        const lunchTab = document.getElementById('lunch-tab');
+        const teaTab = document.getElementById('tea-tab');
+
+        breakfastTab.style.display = canShowBreakfast ? 'inline-block' : 'none';
+        lunchTab.style.display = canShowLunch ? 'inline-block' : 'none';
+        teaTab.style.display = 'inline-block';
+
+        if (canShowBreakfast) {
+            showSection('breakfast', breakfastTab);
+            document.getElementById('timeNote').innerText = 'Breakfast is available from 8:00 AM to 11:30 AM. Tea is available anytime.';
+        } else if (canShowLunch) {
+            showSection('lunch', lunchTab);
+            document.getElementById('timeNote').innerText = 'Lunch is available from 12:00 PM to 2:30 PM. Tea is available anytime.';
+        } else {
+            showSection('tea', teaTab);
+            document.getElementById('timeNote').innerText = 'Tea is available 24/7. Breakfast opens at 8:00 AM and lunch opens at 12:00 PM.';
+        }
+    }
+
+    function loadAdminItems() {
+        const bGrid = document.getElementById('breakfast-grid');
+        const lGrid = document.getElementById('lunch-grid');
+        const tGrid = document.getElementById('tea-grid');
+
+        fetch('/api/menu')
+            .then(res => res.json())
+            .then(menu => {
+                menu.forEach(item => {
+                    const cardHTML = `
+                        <div class="glass-card food-card">
+                            <h3>${item.name}</h3>
+                            <p>${formatMoney(item.price)}</p>
+                            <button onclick="orderItem('${item.name}', ${item.price})">Order</button>
+                        </div>
+                    `;
+
+                    if (item.category === 'breakfast') {
+                        bGrid.innerHTML += cardHTML;
+                    } else if (item.category === 'lunch') {
+                        lGrid.innerHTML += cardHTML;
+                    } else if (item.category === 'tea') {
+                        tGrid.innerHTML += cardHTML;
+                    }
+                });
+            })
+            .catch(err => {
+                console.error("Error loading custom menu items:", err);
+            });
+    }
+
+    function orderItem(itemName, pricePerItem) {
+        let quantity = prompt("Enter quantity for " + itemName);
+        if (quantity && !isNaN(quantity) && quantity > 0) {
+            const orderId = "#" + Math.floor(1000 + Math.random() * 9000);
+            const totalPrice = formatMoney(pricePerItem * quantity);
+
+            const newOrder = {
+                id: orderId,
+                userId: sessionStorage.getItem("CanteenUserId") || "",
+                user: sessionStorage.getItem("CanteenUser") || "Guest",
+                item: itemName,
+                qty: quantity,
+                status: 'Pending',
+                price: totalPrice
+            };
+
+            fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newOrder)
+            })
+            .then(res => res.json())
+            .then(() => {
+                alert("Order Placed Successfully!");
+                window.location.href = "status.html";
+            })
+            .catch(err => {
+                console.error("Error placing order:", err);
+                alert("Failed to place order.");
+            });
+        }
+    }
+
+    function logout() {
+        sessionStorage.clear();
+        window.location.href = "home.html";
+    }
+</script>
+</body>
+</html>

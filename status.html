@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Status</title>
+    <!-- Premium Global CSS -->
+    <link rel="stylesheet" href="modern_luxe.css">
+    <style>
+        body {
+            padding-top: 110px;
+        }
+
+        .status-container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto 50px;
+        }
+
+        .hero-banner {
+            background: linear-gradient(180deg, rgba(6, 9, 19, 0.4) 0%, rgba(6, 9, 19, 0.9) 100%), 
+                        url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1350') center/cover;
+            height: 200px;
+        }
+
+        .hero-banner h1 {
+            font-family: 'Shadows Into Light', cursive;
+            font-size: 48px;
+        }
+
+        .table-wrapper {
+            margin-top: 40px;
+        }
+
+        .table-wrapper h2 {
+            font-size: 28px;
+            margin-bottom: 25px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        .pay-label {
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 0.05em;
+        }
+
+        .pay-btn {
+            padding: 8px 16px;
+            font-size: 13px;
+            background: var(--success-gradient);
+        }
+
+        .payment-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(3, 7, 18, 0.78);
+            backdrop-filter: blur(10px);
+            z-index: 2000;
+        }
+
+        .payment-modal.active {
+            display: flex;
+        }
+
+        .payment-box {
+            width: 100%;
+            max-width: 430px;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .payment-box h2 {
+            font-size: 26px;
+            margin-bottom: 8px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .payment-box p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 18px;
+        }
+
+        .qr-frame {
+            width: 220px;
+            height: 220px;
+            margin: 0 auto 18px;
+            padding: 12px;
+            border-radius: 8px;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .qr-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .qr-placeholder {
+            color: #111827;
+            font-weight: 800;
+            font-size: 15px;
+            line-height: 1.4;
+            display: none;
+        }
+
+        .payment-detail {
+            margin-bottom: 18px;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .payment-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .payment-actions button {
+            flex: 1;
+            padding: 12px;
+            font-size: 14px;
+        }
+
+        .cancel-pay {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            box-shadow: none;
+        }
+        
+        .no-orders {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body class="animate-fade">
+
+<nav>
+  <div class="logo">Canteen <span style="background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Automation</span></div>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="order.html">Order Food</a>
+    <a href="status.html" class="active-link">Order Status</a>
+    <a href="feedback.html">Feedback</a>
+    <a class="logout" onclick="logout()" style="color:#f43f5e; cursor:pointer;">Logout</a>
+  </div>
+</nav>
+
+<div class="status-container">
+    <div class="hero-section hero-banner">
+        <div class="hero-content">
+            <h1>“YOUR ORDERS STATUS”</h1>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <h2>Recent Orders</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Item</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                        <th>Payment</th> 
+                        <th>Price</th>
+                    </tr>
+                </thead>
+                <tbody id="orderTableBody">
+                    <!-- Dynamic orders content -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="payment-modal" id="paymentModal">
+    <div class="glass-container payment-box">
+        <h2>Scan & Pay</h2>
+        <p>Scan the QR code or use the payment ID below.</p>
+        <div class="qr-frame">
+            <img id="paymentQr" src="images/payment-qr.png" alt="Payment QR" onerror="showQrPlaceholder()">
+            <div class="qr-placeholder" id="qrPlaceholder">Unable to load QR.<br>Use payment link below.</div>
+        </div>
+        <div class="payment-detail">
+            Order ID: <span id="paymentOrderId">-</span><br>
+            Amount: <span id="paymentAmount">-</span>
+        </div>
+        <div class="payment-actions">
+            <button class="cancel-pay" onclick="closePayment()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script src="format_money.js"></script>
+<script>
+    let selectedPaymentOrderId = null;
+
+    function loadOrders() {
+        const tableBody = document.getElementById('orderTableBody');
+        const user = sessionStorage.getItem("CanteenUser") || "Guest";
+
+        fetch(`/api/orders?user=${user}`)
+            .then(res => res.json())
+            .then(orders => {
+                if (!orders || orders.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="6" class="no-orders">No active orders found.</td></tr>`;
+                    return;
+                }
+
+                tableBody.innerHTML = orders.map(order => {
+                    const isPaid = order.payment === "Paid";
+                    const isSubmitted = order.payment === "Payment Submitted";
+                    const isApproved = order.status === "Approved";
+                    const isRejected = order.status === "Rejected";
+                    let paymentDisplay = `<span class="pay-label" style="color:#fbbf24">WAITING APPROVAL</span>`;
+
+                    if (isPaid) {
+                        paymentDisplay = `<span class="pay-label" style="color:#10b981">PAID</span>`;
+                    } else if (isSubmitted) {
+                        paymentDisplay = `<span class="pay-label" style="color:#60a5fa">WAITING CONFIRMATION</span>`;
+                    } else if (isRejected) {
+                        paymentDisplay = `<span class="pay-label" style="color:#fb7185">NOT AVAILABLE</span>`;
+                    } else if (isApproved) {
+                        paymentDisplay = `<button class="pay-btn" onclick="openPayment('${order._id}', '${order.orderId}', '${formatMoney(order.price)}')">Pay</button>`;
+                    }
+                    return `
+                        <tr>
+                            <td><strong>${order.orderId}</strong></td>
+                            <td>${order.item}</td>
+                            <td>${order.qty}</td>
+                            <td><span class="status ${order.status.toLowerCase()}">${order.status}</span></td>
+                            <td>${paymentDisplay}</td>
+                            <td style="font-weight: 700; color: var(--text-main);">${formatMoney(order.price)}</td>
+                        </tr>
+                    `;
+                }).join('');
+            })
+            .catch(err => {
+                console.error("Error loading student orders:", err);
+            });
+    }
+
+    function showQrPlaceholder() {
+        document.getElementById("paymentQr").style.display = "none";
+        document.getElementById("qrPlaceholder").style.display = "block";
+    }
+
+    function openPayment(orderDbId, orderId, amount) {
+        selectedPaymentOrderId = orderDbId;
+        const amountNumber = getMoneyNumber(amount);
+        const paymentNote = `Canteen Order ${orderId}`;
+        const upiUrl = `upi://pay?pa=ajayjohnpeter17-1@oksbi&pn=Jeyabalan%20J&am=${amountNumber}&cu=INR&tn=${encodeURIComponent(paymentNote)}`;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiUrl)}`;
+
+        document.getElementById("paymentQr").style.display = "block";
+        document.getElementById("qrPlaceholder").style.display = "none";
+        document.getElementById("paymentQr").src = qrUrl;
+        document.getElementById("paymentOrderId").innerText = orderId;
+        document.getElementById("paymentAmount").innerText = formatMoney(amount);
+        document.getElementById("paymentModal").classList.add("active");
+    }
+
+    function closePayment() {
+        selectedPaymentOrderId = null;
+        document.getElementById("paymentModal").classList.remove("active");
+    }
+
+    function logout() {
+        sessionStorage.clear();
+        window.location.href = "home.html";
+    }
+
+    setInterval(loadOrders, 3000);
+    window.onload = loadOrders;
+</script>
+</body>
+</html>

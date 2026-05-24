@@ -1,0 +1,312 @@
+require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const path = require('path');
+
+const User = require('./models/User');
+const MenuItem = require('./models/MenuItem');
+const Combo = require('./models/Combo');
+const Order = require('./models/Order');
+const Feedback = require('./models/Feedback');
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/canteen';
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Serve static frontend files
+app.use(express.static(path.join(__dirname)));
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('MongoDB disconnected. Check whether the database server is running.');
+});
+
+// Connect to MongoDB
+async function connectDatabase() {
+  try {
+    await mongoose.connect(MONGO_URI, {
+      serverSelectionTimeoutMS: 5000
+    });
+    console.log('Connected to MongoDB successfully at', MONGO_URI);
+    await seedDefaultData();
+  } catch (err) {
+    console.error('MongoDB Connection Error:', err.message);
+    console.error('Set MONGO_URI in .env, or start MongoDB locally at mongodb://localhost:27017/canteen');
+    process.exit(1);
+  }
+}
+
+// Seed default users, combos and menu items if database is empty
+async function seedDefaultData() {
+  try {
+    // 1. Seed Users
+    const userCount = await User.countDocuments();
+    if (userCount === 0) {
+      await User.insertMany([
+        { username: '123', password: '123', role: 'student' },
+        { username: 'admin123', password: '123', role: 'admin' }
+      ]);
+      console.log('Default users seeded successfully.');
+    }
+
+    // 2. Seed Combos (if none exist)
+    const comboCount = await Combo.countDocuments();
+    if (comboCount === 0) {
+      await Combo.insertMany([
+        {
+          name: 'Super Saver Burger Combo',
+          items: 'Burger, French Fries, Coca Cola',
+          price: 149,
+          img: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500'
+        },
+        {
+          name: 'Healthy Morning Combo',
+          items: 'Idly (2 Pcs), Vada (1 Pc), Filter Coffee',
+          price: 69,
+          img: 'https://images.unsplash.com/photo-1589301760014-d929f3979dbc?w=500'
+        }
+      ]);
+      console.log('Default combos seeded.');
+    }
+
+    // 3. Seed Menu Items (if none exist in canteenMenu)
+    const menuCount = await MenuItem.countDocuments();
+    if (menuCount === 0) {
+      await MenuItem.insertMany([
+        { name: 'Masala Dosa', price: 50, category: 'breakfast' },
+        { name: 'Paneer Butter Masala', price: 120, category: 'lunch' },
+        { name: 'Tea', price: 10, category: 'tea' },
+        { name: 'Coffee', price: 15, category: 'tea' }
+      ]);
+      console.log('Default menu items seeded.');
+    }
+  } catch (err) {
+    console.error('Error seeding default database records:', err);
+  }
+}
+
+/* ==========================================================================
+   API ENDPOINTS
+   ========================================================================== */
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    server: 'ok',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
+// 1. Auth Endpoint
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const user = await User.findOne({ username, password });
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid username or password' });
+    }
+    res.json({ success: true, userId: user._id, username: user.username, role: user.role });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/users', async (req, res) => {
+  try {
+    const users = await User.find().select('_id username role').sort({ username: 1 });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/users', async (req, res) => {
+  const { username, password, role } = req.body;
+  try {
+    const newUser = new User({ username, password, role });
+    await newUser.save();
+    res.status(201).json({
+      _id: newUser._id,
+      username: newUser.username,
+      role: newUser.role
+    });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ error: 'Username already exists' });
+    }
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 2. Menu Item Endpoints
+app.get('/api/menu', async (req, res) => {
+  try {
+    const menuItems = await MenuItem.find();
+    res.json(menuItems);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/menu', async (req, res) => {
+  const { name, price, category } = req.body;
+  try {
+    const newItem = new MenuItem({ name, price: Number(price), category });
+    await newItem.save();
+    res.status(201).json(newItem);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/menu/:id', async (req, res) => {
+  const { name, price, category } = req.body;
+  try {
+    const updated = await MenuItem.findByIdAndUpdate(
+      req.params.id,
+      { name, price: Number(price), category },
+      { new: true }
+    );
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/menu/:id', async (req, res) => {
+  try {
+    await MenuItem.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Item deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Combo Endpoints
+app.get('/api/combos', async (req, res) => {
+  try {
+    const combos = await Combo.find();
+    res.json(combos);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/combos', async (req, res) => {
+  const { name, items, price, img } = req.body;
+  try {
+    const newCombo = new Combo({ name, items, price: Number(price), img });
+    await newCombo.save();
+    res.status(201).json(newCombo);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/combos/:id', async (req, res) => {
+  const { name, items, price, img } = req.body;
+  try {
+    const updated = await Combo.findByIdAndUpdate(
+      req.params.id,
+      { name, items, price: Number(price), img },
+      { new: true }
+    );
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/combos/:id', async (req, res) => {
+  try {
+    await Combo.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'Combo deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 4. Order Endpoints
+app.get('/api/orders', async (req, res) => {
+  const { user } = req.query;
+  try {
+    const filter = user ? { user } : {};
+    // Retrieve newest orders first
+    const orders = await Order.find(filter).sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/orders', async (req, res) => {
+  const { id, userId, user, item, qty, status, price, payment } = req.body;
+  try {
+    const newOrder = new Order({
+      orderId: id,
+      userId,
+      user,
+      item,
+      qty: Number(qty),
+      status: status || 'Pending',
+      price,
+      payment: payment || 'Not Paid'
+    });
+    await newOrder.save();
+    res.status(201).json(newOrder);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.put('/api/orders/:id', async (req, res) => {
+  const { status, payment } = req.body;
+  try {
+    const updateData = {};
+    if (status !== undefined) updateData.status = status;
+    if (payment !== undefined) {
+      updateData.payment = payment;
+      updateData.paidAt = payment === 'Paid' ? new Date() : null;
+    }
+
+    const updated = await Order.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// 5. Feedback Endpoints
+app.get('/api/feedback', async (req, res) => {
+  try {
+    const feedbacks = await Feedback.find();
+    res.json(feedbacks);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/feedback', async (req, res) => {
+  const { username, rating, comment, time } = req.body;
+  try {
+    const newFeedback = new Feedback({ username, rating: Number(rating), comment, time });
+    await newFeedback.save();
+    res.status(201).json(newFeedback);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Default route redirect to home.html if path is empty
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'home.html'));
+});
+
+connectDatabase().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+});

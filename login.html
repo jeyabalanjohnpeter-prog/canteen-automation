@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canteen Automation - Login</title>
+    <!-- Premium Global CSS -->
+    <link rel="stylesheet" href="modern_luxe.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 440px;
+        }
+
+        .login-card {
+            padding: 50px 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        .login-card h2 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .login-card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 35px;
+        }
+
+        #errorMsg {
+            display: none;
+            background: rgba(244, 63, 94, 0.1);
+            color: #fb7185;
+            border: 1px solid rgba(244, 63, 94, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(244, 63, 94, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            margin-top: 10px;
+            box-shadow: var(--indigo-glow);
+        }
+        
+        .brand-logo {
+            font-family: 'Outfit', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 30px;
+            color: var(--text-muted);
+        }
+        
+        .brand-logo span {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="animate-fade">
+
+<div class="login-wrapper">
+    <div class="glass-container login-card">
+        <div class="brand-logo">Canteen <span>Automation</span></div>
+        <h2>Welcome Back</h2>
+        <p>Login to start ordering delicious meals</p>
+
+        <div id="errorMsg">Wrong User ID or Password</div>
+
+        <form onsubmit="return loginCheck()">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter username" required autocomplete="off">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter password" required autocomplete="off">
+            </div>
+
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+    </div>
+</div>
+
+<script>
+function loginCheck() {
+    const user = document.getElementById("username").value;
+    const pass = document.getElementById("password").value;
+
+    fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user, password: pass })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            sessionStorage.setItem("role", data.role);
+            sessionStorage.setItem("CanteenUserId", data.userId);
+            sessionStorage.setItem("CanteenUser", data.username);
+            if (data.role === 'admin') {
+                window.location.href = "admin_dashboard.html";
+            } else {
+                window.location.href = "dashboard.html";
+            }
+        } else {
+            document.getElementById("errorMsg").style.display = "block";
+        }
+    })
+    .catch(err => {
+        console.error('Error during login:', err);
+        document.getElementById("errorMsg").style.display = "block";
+    });
+
+    return false;
+}
+</script>
+</body>
+</html>

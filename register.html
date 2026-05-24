@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canteen Automation - Register</title>
+    <link rel="stylesheet" href="modern_luxe.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 100px 20px 30px;
+        }
+
+        .register-wrapper {
+            width: 100%;
+            max-width: 460px;
+        }
+
+        .register-card {
+            padding: 45px 40px;
+            text-align: center;
+        }
+
+        .register-card h2 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .register-card p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .register-btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            margin-top: 8px;
+        }
+
+        .login-link {
+            margin-top: 22px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .login-link a {
+            color: var(--text-main);
+            font-weight: 700;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body class="animate-fade">
+
+<nav>
+    <div class="logo">Canteen <span style="background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Automation</span></div>
+    <div class="nav-links">
+        <a href="home.html">Home</a>
+        <a href="login.html">Login</a>
+    </div>
+</nav>
+
+<div class="register-wrapper">
+    <div class="glass-container register-card">
+        <h2>Create Account</h2>
+        <p>Register as a student to start ordering food</p>
+
+        <form onsubmit="return registerUser()">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" placeholder="Enter username" required autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter password" required autocomplete="off">
+            </div>
+
+            <button type="submit" class="register-btn">Register</button>
+        </form>
+
+        <div class="login-link">
+            Already registered? <a href="login.html">Login</a>
+        </div>
+    </div>
+</div>
+
+<script>
+function registerUser() {
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!username || !password) {
+        alert("Please enter username and password.");
+        return false;
+    }
+
+    fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, role: 'student' })
+    })
+    .then(async res => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Registration failed");
+        return data;
+    })
+    .then(() => {
+        alert("Registration successful. Please login.");
+        window.location.href = "login.html";
+    })
+    .catch(err => {
+        alert(err.message);
+    });
+
+    return false;
+}
+</script>
+</body>
+</html>
