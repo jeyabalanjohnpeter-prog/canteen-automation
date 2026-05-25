@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Orders - Canteen Admin</title>
+    <!-- Premium Global CSS -->
+    <link rel="stylesheet" href="modern_luxe.css">
+    <style>
+        body {
+            padding-top: 110px;
+        }
+
+        .manage-container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto 50px;
+        }
+
+        .manage-container h1 {
+            font-size: 34px;
+            margin-bottom: 30px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        .action-cell {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .action-cell button {
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .action-cell button.approve {
+            background: var(--success-gradient);
+        }
+
+        .action-cell button.reject {
+            background: var(--secondary-gradient);
+        }
+
+        .action-cell button.finish {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        }
+
+        .action-cell button.pay-btn {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+        }
+
+        .status-label {
+            font-weight: 700;
+            font-size: 13px;
+        }
+        
+        .no-orders-admin {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body class="animate-fade">
+
+<nav>
+    <div class="brand-area">
+        <div class="admin-menu">
+            <button type="button" class="menu-toggle" aria-label="Open admin menu">&#9776;</button>
+            <div class="admin-menu-list">
+                <a href="add_user.html">Add User</a>
+            </div>
+        </div>
+        <div class="logo">Canteen <span style="background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Admin</span></div>
+    </div>
+    <div class="nav-links">
+        <a href="admin_dashboard.html">Dashboard</a>
+        <a href="manage_orders.html" class="active-link">Manage Orders</a>
+        <a href="manage_combo.html">Manage Combo</a>
+        <a href="manage_menu.html">Manage Menu</a>
+        <a class="logout" onclick="logout()" style="color:#f43f5e; cursor:pointer;">Logout</a>
+    </div>
+</nav>
+
+<div class="manage-container">
+    <h1>Manage Orders 📦</h1>
+    
+    <div class="glass-container" style="overflow-x: auto; padding: 25px;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>User Name</th>
+                    <th>User ID</th>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Payment</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="orderTable">
+                <!-- Dynamic order rows -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="format_money.js"></script>
+<script>
+    let globalOrders = [];
+
+    function loadAdminOrders() {
+        const tableBody = document.getElementById('orderTable');
+        
+        fetch('/api/orders')
+            .then(res => res.json())
+            .then(orders => {
+                globalOrders = orders;
+                if (!orders || orders.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="9" class="no-orders-admin">No orders found.</td></tr>`;
+                    return;
+                }
+
+                tableBody.innerHTML = orders.map((order) => {
+                    let actionHtml = "";
+                    let color = "#fbbf24";
+
+                    // Status Logic
+                    if (order.status === "Pending") {
+                        actionHtml = `
+                            <div class="action-cell">
+                                <button class="approve" onclick="updateStatus('${order._id}', 'Approved')">Approve</button>
+                                <button class="reject" onclick="updateStatus('${order._id}', 'Rejected')">Reject</button>
+                            </div>
+                        `;
+                    } else if (order.status === "Approved") {
+                        color = "#34d399";
+                        actionHtml = `
+                            <div class="action-cell">
+                                <button class="finish" onclick="updateStatus('${order._id}', 'Finished')">Mark Finished</button>
+                            </div>
+                        `;
+                    } else {
+                        color = order.status === "Finished" ? "#60a5fa" : "#fb7185";
+                        actionHtml = `<span style="color: var(--text-muted); font-size:14px;">Order ${order.status}</span>`;
+                    }
+
+                    // Payment Logic
+                    let payDisplay = order.payment === "Paid" ? 
+                        `<span style="color:#34d399; font-weight:bold; font-size:13px;">✅ Paid</span>` : 
+                        `<button class="pay-btn" onclick="markPaid('${order._id}')">Mark Paid</button>`;
+
+                    payDisplay = `<span style="color:#fbbf24; font-weight:bold; font-size:13px;">Not Paid</span>`;
+                    if (order.payment === "Paid") {
+                        payDisplay = `<span style="color:#34d399; font-weight:bold; font-size:13px;">Paid</span>`;
+                    } else if (order.payment === "Payment Submitted" || order.status === "Approved") {
+                        payDisplay = `<button class="pay-btn" onclick="markPaid('${order._id}')">Confirm Received</button>`;
+                    }
+
+                    return `
+                        <tr>
+                            <td><strong>${order.orderId}</strong></td>
+                            <td style="font-weight:700; color:#06b6d4;">${order.user || 'Guest'}</td>
+                            <td style="font-size:12px; color:var(--text-muted);">${order.userId || '-'}</td>
+                            <td>${order.item}</td>
+                            <td>${order.qty}</td>
+                            <td style="font-weight:700; color:var(--text-main);">${formatMoney(order.price)}</td>
+                            <td><span class="status ${order.status.toLowerCase()}">${order.status}</span></td>
+                            <td>${payDisplay}</td>
+                            <td>${actionHtml}</td>
+                        </tr>
+                    `;
+                }).join('');
+            })
+            .catch(err => {
+                console.error("Error loading admin orders:", err);
+                tableBody.innerHTML = `<tr><td colspan="9" class="no-orders-admin">Error loading orders from server.</td></tr>`;
+            });
+    }
+
+    function markPaid(orderDbId) {
+        fetch(`/api/orders/${orderDbId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ payment: 'Paid' })
+        })
+        .then(res => res.json())
+        .then(data => {
+            loadAdminOrders();
+        })
+        .catch(err => {
+            console.error("Error updating payment status:", err);
+            alert("Failed to update payment status.");
+        });
+    }
+
+    function updateStatus(orderDbId, newValue) {
+        fetch(`/api/orders/${orderDbId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newValue })
+        })
+        .then(res => res.json())
+        .then(data => {
+            loadAdminOrders();
+        })
+        .catch(err => {
+            console.error("Error updating order status:", err);
+            alert("Failed to update status.");
+        });
+    }
+
+    function logout() {
+        sessionStorage.clear();
+        window.location.href = "home.html";
+    }
+
+    window.onload = loadAdminOrders;
+    setInterval(loadAdminOrders, 3000);
+</script>
+</body>
+</html>

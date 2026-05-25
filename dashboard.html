@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Canteen Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Premium Global CSS -->
+    <link rel="stylesheet" href="modern_luxe.css">
+    <style>
+        body {
+            padding-top: 110px;
+        }
+
+        .dashboard-container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto 50px;
+        }
+
+        .combo-section {
+            margin-top: 40px;
+            text-align: center;
+        }
+
+        .combo-section h2 {
+            font-size: 32px;
+            margin-bottom: 30px;
+            text-align: left;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        .combos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
+            margin-top: 10px;
+        }
+
+        .combo-card {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+            height: 100%;
+        }
+
+        .combo-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 18px;
+            transition: var(--transition);
+        }
+
+        .combo-card:hover img {
+            transform: scale(1.03);
+            filter: brightness(1.05);
+        }
+
+        .combo-card h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .combo-card p {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            flex-grow: 1;
+        }
+
+        .combo-card button {
+            width: 100%;
+            margin-top: auto;
+        }
+        
+        .hero-banner {
+            background: linear-gradient(180deg, rgba(6, 9, 19, 0.4) 0%, rgba(6, 9, 19, 0.9) 100%), 
+                        url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=1350') center/cover;
+            height: 260px;
+        }
+
+        .hero-banner h1 {
+            font-family: 'Shadows Into Light', cursive;
+            font-size: 54px;
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body class="animate-fade">
+
+<nav>
+    <div class="logo">Canteen <span style="background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Automation</span></div>
+    <div class="nav-links">
+        <a href="dashboard.html" class="active-link">Dashboard</a>
+        <a href="order.html">Order Food</a>
+        <a href="status.html">Order Status</a>
+        <a href="feedback.html">Feedback</a>
+        <a class="logout" onclick="logout()" style="color:#f43f5e; cursor:pointer;">Logout</a>
+    </div>
+</nav>
+
+<div class="dashboard-container">
+    <div class="hero-section hero-banner">
+        <div class="hero-content">
+            <h1>Welcome to your CaNtEeN</h1>
+        </div>
+    </div>
+
+    <div class="combo-section">
+        <h2>Our Special Combos</h2>
+        <div class="combos" id="dashboardCombos">
+            <!-- Dynamic Combos list -->
+        </div>
+    </div>
+</div>
+
+<script src="format_money.js"></script>
+<script>
+    window.onload = loadDashboard;
+
+    function loadDashboard() {
+        const container = document.getElementById('dashboardCombos');
+        
+        fetch('/api/combos')
+            .then(res => res.json())
+            .then(combos => {
+                if (!combos || combos.length === 0) {
+                    container.innerHTML = "<h3 style='grid-column: 1/-1; color: var(--text-muted);'>No special combos available right now.</h3>";
+                    return;
+                }
+
+                container.innerHTML = combos.map(c => `
+                    <div class="glass-card combo-card">
+                        <img src="${c.img}" alt="${c.name}">
+                        <h3>${c.name}</h3>
+                        <p>${c.items}</p>
+                        <button onclick="orderItem('${c.name}', ${c.price})">Order Now - ${formatMoney(c.price)}</button>
+                    </div>
+                `).join('');
+            })
+            .catch(err => {
+                console.error("Error loading dashboard combos:", err);
+                container.innerHTML = "<h3 style='grid-column: 1/-1; color: #fb7185;'>Failed to load special combos.</h3>";
+            });
+    }
+
+    function orderItem(name, pricePerItem) {
+        let quantity = prompt("How many " + name + " would you like to order?");
+        if (quantity && !isNaN(quantity) && quantity > 0) {
+            const orderId = "#" + Math.floor(100 + Math.random() * 900);
+            const totalPrice = formatMoney(pricePerItem * quantity);
+            
+            const newOrder = {
+                id: orderId,
+                userId: sessionStorage.getItem("CanteenUserId") || "",
+                user: sessionStorage.getItem("CanteenUser") || "Guest",
+                item: name,
+                qty: quantity,
+                status: 'Pending',
+                price: totalPrice
+            };
+
+            fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newOrder)
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert("Order Successful!");
+                window.location.href = "status.html";
+            })
+            .catch(err => {
+                console.error("Error submitting order:", err);
+                alert("Failed to place order. Please try again.");
+            });
+        }
+    }
+
+    function logout() {
+        sessionStorage.clear();
+        window.location.href = "home.html";
+    }
+</script>
+</body>
+</html>

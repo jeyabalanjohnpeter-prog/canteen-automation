@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add User - Canteen Admin</title>
+    <link rel="stylesheet" href="modern_luxe.css">
+    <style>
+        body {
+            padding-top: 110px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto 50px;
+        }
+
+        .container h1 {
+            font-size: 34px;
+            margin-bottom: 30px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        .section-title {
+            font-size: 22px;
+            margin-bottom: 25px;
+            color: var(--text-main);
+        }
+
+        .form-section {
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+
+        .user-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .user-form button {
+            min-height: 48px;
+        }
+    </style>
+</head>
+<body class="animate-fade">
+
+<nav>
+    <div class="brand-area">
+        <div class="admin-menu">
+            <button type="button" class="menu-toggle" aria-label="Open admin menu">&#9776;</button>
+            <div class="admin-menu-list">
+                <a href="add_user.html">Add User</a>
+            </div>
+        </div>
+        <div class="logo">Canteen <span style="background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Admin</span></div>
+    </div>
+    <div class="nav-links">
+        <a href="admin_dashboard.html">Dashboard</a>
+        <a href="manage_orders.html">Manage Orders</a>
+        <a href="manage_combo.html">Manage Combo</a>
+        <a href="manage_menu.html">Manage Menu</a>
+        <a class="logout" onclick="logout()" style="color:#f43f5e; cursor:pointer;">Logout</a>
+    </div>
+</nav>
+
+<div class="container">
+    <h1>Add User</h1>
+
+    <div class="glass-container form-section">
+        <h2 class="section-title">Create New User</h2>
+        <div class="user-form">
+            <input type="text" id="newUsername" placeholder="Username">
+            <input type="password" id="newPassword" placeholder="Password">
+            <select id="newRole">
+                <option value="student">Student</option>
+                <option value="admin">Admin</option>
+            </select>
+            <button onclick="addUser()">Add User</button>
+        </div>
+    </div>
+
+    <div class="glass-container" style="overflow-x: auto; padding: 25px;">
+        <h2 class="section-title">Registered Users</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>User Name</th>
+                    <th>User ID</th>
+                    <th>Role</th>
+                </tr>
+            </thead>
+            <tbody id="usersTable">
+                <!-- Dynamic user records -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+if(sessionStorage.getItem("role") !== "admin") window.location.href = "login.html";
+
+function loadUsers() {
+    const usersTable = document.getElementById("usersTable");
+    fetch('/api/users')
+        .then(res => res.json())
+        .then(users => {
+            if (!users || users.length === 0) {
+                usersTable.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-muted);">No registered users found.</td></tr>`;
+                return;
+            }
+
+            usersTable.innerHTML = users.map(user => `
+                <tr>
+                    <td><strong>${user.username}</strong></td>
+                    <td style="font-size:13px; color: var(--text-muted);">${user._id}</td>
+                    <td style="text-transform: capitalize;">${user.role}</td>
+                </tr>
+            `).join('');
+        })
+        .catch(err => {
+            console.error("Error loading registered users:", err);
+            usersTable.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#fb7185;">Failed to load users.</td></tr>`;
+        });
+}
+
+function addUser() {
+    const username = document.getElementById("newUsername").value.trim();
+    const password = document.getElementById("newPassword").value.trim();
+    const role = document.getElementById("newRole").value;
+
+    if (!username || !password) {
+        alert("Please enter username and password.");
+        return;
+    }
+
+    fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, role })
+    })
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to add user");
+            return data;
+        })
+        .then(() => {
+            document.getElementById("newUsername").value = "";
+            document.getElementById("newPassword").value = "";
+            document.getElementById("newRole").value = "student";
+            alert("User added successfully!");
+            loadUsers();
+        })
+        .catch(err => {
+            alert(err.message);
+        });
+}
+
+function logout() {
+    sessionStorage.clear();
+    window.location.href = "home.html";
+}
+
+window.onload = loadUsers;
+</script>
+</body>
+</html>

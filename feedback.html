@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback</title>
+    <!-- Premium Global CSS -->
+    <link rel="stylesheet" href="modern_luxe.css">
+    <style>
+        body {
+            padding-top: 110px;
+        }
+
+        .feedback-container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto 50px;
+        }
+
+        .hero-banner {
+            background: linear-gradient(180deg, rgba(6, 9, 19, 0.4) 0%, rgba(6, 9, 19, 0.9) 100%), 
+                        url('./images/dashboard.jpg') center/cover;
+            height: 200px;
+        }
+
+        .hero-banner h1 {
+            font-family: 'Shadows Into Light', cursive;
+            font-size: 48px;
+        }
+
+        .form-card {
+            max-width: 600px;
+            margin: 50px auto 0;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .form-card h2 {
+            font-size: 26px;
+            margin-bottom: 25px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        .stars {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .stars span {
+            font-size: 38px;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.15);
+            transition: var(--transition);
+            text-shadow: 0 0 10px transparent;
+        }
+
+        .stars span:hover, .stars span.active {
+            color: #fbbf24;
+            text-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+            transform: scale(1.15);
+        }
+
+        textarea {
+            height: 140px;
+            resize: none;
+            margin-bottom: 25px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            box-shadow: var(--indigo-glow);
+        }
+
+        .success-box {
+            display: none;
+            background: rgba(16, 185, 129, 0.1);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            margin-top: 20px;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+    </style>
+</head>
+<body class="animate-fade">
+
+<nav>
+  <div class="logo">Canteen <span style="background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Automation</span></div>
+  <div class="nav-links">
+    <a href="dashboard.html">Dashboard</a>
+    <a href="order.html">Order Food</a>
+    <a href="status.html">Order Status</a>
+    <a href="feedback.html" class="active-link">Feedback</a>
+    <a class="logout" onclick="logout()" style="color:#f43f5e; cursor:pointer;">Logout</a>
+  </div>
+</nav>
+
+<div class="feedback-container">
+    <div class="hero-section hero-banner">
+        <div class="hero-content">
+            <h1>“WE VALUE YOUR FEEDBACK”</h1>
+        </div>
+    </div>
+
+    <div class="glass-container form-card animate-fade">
+        <h2>Rate Your Experience</h2>
+        
+        <div class="stars" id="starContainer">
+            <span onclick="rate(1)">★</span>
+            <span onclick="rate(2)">★</span>
+            <span onclick="rate(3)">★</span>
+            <span onclick="rate(4)">★</span>
+            <span onclick="rate(5)">★</span>
+        </div>
+
+        <textarea id="comment" placeholder="Write your feedback here..."></textarea>
+        
+        <button class="submit-btn" onclick="submitFeedback()">Submit Feedback</button>
+        
+        <div class="success-box" id="successMsg">✅ Submitted with Date & Time!</div>
+    </div>
+</div>
+
+<script>
+let userRating = 0;
+function rate(n){
+  userRating = n;
+  const stars = document.querySelectorAll("#starContainer span");
+  stars.forEach((s, i) => s.classList.toggle("active", i < n));
+}
+
+function submitFeedback(){
+  const msg = document.getElementById("comment").value;
+  const exactUser = sessionStorage.getItem("CanteenUser") || "Guest";
+  
+  if(userRating === 0) { alert("Please select stars!"); return; }
+
+  const now = new Date();
+  const timestamp = now.toLocaleDateString() + " | " + now.toLocaleTimeString();
+
+  const feedbackObj = {
+    username: exactUser,
+    rating: userRating,
+    comment: msg,
+    time: timestamp
+  };
+
+  fetch('/api/feedback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(feedbackObj)
+  })
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("successMsg").style.display="block";
+    setTimeout(() => { location.reload(); }, 2000);
+  })
+  .catch(err => {
+    console.error("Error submitting feedback:", err);
+    alert("Failed to submit feedback.");
+  });
+}
+
+function logout() {
+  sessionStorage.clear();
+  window.location.href = "home.html";
+}
+</script>
+</body>
+</html>

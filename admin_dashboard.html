@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard</title>
+<!-- Premium Global CSS -->
+<link rel="stylesheet" href="modern_luxe.css">
+<style>
+    body {
+        padding-top: 110px;
+    }
+
+    .dashboard {
+        width: 90%;
+        max-width: 1200px;
+        margin: 0 auto 50px;
+    }
+
+    .dashboard h1 {
+        font-size: 34px;
+        margin-bottom: 30px;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: inline-block;
+    }
+
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 25px;
+        margin-bottom: 50px;
+    }
+
+    .card {
+        padding: 35px 30px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .card h2 {
+        font-size: 42px;
+        font-weight: 800;
+        margin-bottom: 6px;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .card p {
+        color: var(--text-muted);
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .feedback-section {
+        margin-top: 40px;
+    }
+
+    .feedback-section h2 {
+        font-size: 26px;
+        margin-bottom: 25px;
+        background: var(--primary-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: inline-block;
+    }
+
+    .stars {
+        color: #fbbf24;
+        font-weight: 700;
+        text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+    }
+
+</style>
+</head>
+<body class="animate-fade">
+
+<nav>
+    <div class="brand-area">
+        <div class="admin-menu">
+            <button type="button" class="menu-toggle" aria-label="Open admin menu">&#9776;</button>
+            <div class="admin-menu-list">
+                <a href="add_user.html">Add User</a>
+            </div>
+        </div>
+        <div class="logo">Canteen <span style="background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Admin</span></div>
+    </div>
+    <div class="nav-links">
+        <a href="admin_dashboard.html" class="active">Dashboard</a>
+        <a href="manage_orders.html">Manage Orders</a>
+        <a href="manage_combo.html">Manage Combo</a>
+        <a href="manage_menu.html">Manage Menu</a>
+        <a class="logout" onclick="logout()" style="color:#f43f5e; cursor:pointer;">Logout</a>
+    </div>
+</nav>
+
+<div class="dashboard">
+    <h1>Welcome Admin 👨‍💼</h1>
+    
+    <div class="cards">
+        <div class="glass-card card"><h2 id="totalOrdersCount">0</h2><p>Total Orders</p></div>
+        <div class="glass-card card"><h2 id="pendingOrdersCount">0</h2><p>Pending Orders</p></div>
+        <div class="glass-card card"><h2 id="totalRevenue">Rs.0.00</h2><p>Today's Revenue</p></div>
+    </div>
+
+    <div class="glass-container feedback-section">
+        <h2>Recent User Feedback</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Rating</th>
+                        <th>Comment</th>
+                        <th>Date & Time</th>
+                    </tr>
+                </thead>
+                <tbody id="adminTable">
+                    <!-- Dynamic feedback records -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="format_money.js"></script>
+<script>
+if(sessionStorage.getItem("role") !== "admin") window.location.href = "login.html";
+
+function loadDashboardData() {
+    // Load feedbacks from backend API
+    const tableBody = document.getElementById("adminTable");
+    fetch('/api/feedback')
+        .then(res => res.json())
+        .then(feedbackData => {
+            tableBody.innerHTML = "";
+            if (!feedbackData || feedbackData.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No feedback reviews submitted yet.</td></tr>`;
+                return;
+            }
+            feedbackData.reverse().forEach(item => {
+                tableBody.innerHTML += `<tr>
+                    <td><strong>${item.username}</strong></td>
+                    <td class="stars">${item.rating} ★</td>
+                    <td>${item.comment}</td>
+                    <td style="font-size:13px; color: var(--text-muted);">${item.time}</td>
+                </tr>`;
+            });
+        })
+        .catch(err => {
+            console.error("Error loading admin dashboard feedback:", err);
+        });
+
+    // Load metrics from backend API
+    fetch('/api/orders')
+        .then(res => res.json())
+        .then(orders => {
+            // 1. Total Orders
+            document.getElementById('totalOrdersCount').innerText = orders.length;
+
+            // 2. Pending Orders
+            const pendingCount = orders.filter(o => o.status === "Pending").length;
+            document.getElementById('pendingOrdersCount').innerText = pendingCount;
+
+            // 3. Today's Revenue (only confirmed payments received today)
+            const today = new Date();
+            let revenue = 0;
+            orders.forEach(order => {
+                const paidDate = order.paidAt ? new Date(order.paidAt) : new Date(order.createdAt);
+                const isPaidToday = paidDate.getFullYear() === today.getFullYear()
+                    && paidDate.getMonth() === today.getMonth()
+                    && paidDate.getDate() === today.getDate();
+
+                if (order.payment === "Paid" && isPaidToday) {
+                    let price = getMoneyNumber(order.price);
+                    revenue += price;
+                }
+            });
+            document.getElementById('totalRevenue').innerText = formatMoney(revenue);
+        })
+        .catch(err => {
+            console.error("Error loading admin dashboard orders:", err);
+        });
+}
+
+window.onload = function() {
+    loadDashboardData();
+    setInterval(loadDashboardData, 3000);
+}
+
+function logout() {
+    sessionStorage.clear();
+    window.location.href = "home.html";
+}
+</script>
+</body>
+</html>
