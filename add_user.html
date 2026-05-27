@@ -46,6 +46,26 @@
         .user-form button {
             min-height: 48px;
         }
+
+        .table-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .user-count {
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .delete-btn {
+            background: var(--secondary-gradient);
+            padding: 8px 16px;
+            font-size: 13px;
+        }
     </style>
 </head>
 <body class="animate-fade">
@@ -86,13 +106,17 @@
     </div>
 
     <div class="glass-container" style="overflow-x: auto; padding: 25px;">
-        <h2 class="section-title">Registered Users</h2>
+        <div class="table-heading">
+            <h2 class="section-title" style="margin-bottom:0;">Registered Users</h2>
+            <span class="user-count">Total Users: <strong id="usersCount">0</strong></span>
+        </div>
         <table>
             <thead>
                 <tr>
                     <th>User Name</th>
                     <th>User ID</th>
                     <th>Role</th>
+                    <th>Action</th>
                 </tr>
             </thead>
             <tbody id="usersTable">
@@ -111,21 +135,24 @@ function loadUsers() {
         .then(res => res.json())
         .then(users => {
             if (!users || users.length === 0) {
-                usersTable.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-muted);">No registered users found.</td></tr>`;
+                document.getElementById("usersCount").innerText = "0";
+                usersTable.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No registered users found.</td></tr>`;
                 return;
             }
 
+            document.getElementById("usersCount").innerText = users.length;
             usersTable.innerHTML = users.map(user => `
                 <tr>
                     <td><strong>${user.username}</strong></td>
                     <td style="font-size:13px; color: var(--text-muted);">${user._id}</td>
                     <td style="text-transform: capitalize;">${user.role}</td>
+                    <td><button class="delete-btn" onclick='deleteUser(${JSON.stringify(user._id)}, ${JSON.stringify(user.username)})'>Remove</button></td>
                 </tr>
             `).join('');
         })
         .catch(err => {
             console.error("Error loading registered users:", err);
-            usersTable.innerHTML = `<tr><td colspan="3" style="text-align:center; color:#fb7185;">Failed to load users.</td></tr>`;
+            usersTable.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#fb7185;">Failed to load users.</td></tr>`;
         });
 }
 
@@ -154,6 +181,26 @@ function addUser() {
             document.getElementById("newPassword").value = "";
             document.getElementById("newRole").value = "student";
             alert("User added successfully!");
+            loadUsers();
+        })
+        .catch(err => {
+            alert(err.message);
+        });
+}
+
+function deleteUser(userId, username) {
+    if (!confirm(`Remove user "${username}"?`)) return;
+
+    fetch(`/api/users/${userId}`, {
+        method: 'DELETE'
+    })
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to remove user");
+            return data;
+        })
+        .then(() => {
+            alert("User removed successfully!");
             loadUsers();
         })
         .catch(err => {

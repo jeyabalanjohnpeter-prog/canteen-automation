@@ -104,6 +104,14 @@
         .food-card button {
             width: 100%;
         }
+
+        .food-card img {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
     </style>
 </head>
 <body class="animate-fade">
@@ -130,33 +138,28 @@
         <button id="breakfast-tab" onclick="showSection('breakfast', this)">Breakfast</button>
         <button id="lunch-tab" onclick="showSection('lunch', this)">Lunch</button>
         <button id="tea-tab" onclick="showSection('tea', this)">Tea</button>
+        <button id="combos-tab" onclick="showSection('combos', this)">Combos</button>
     </div>
 
     <div class="time-note" id="timeNote"></div>
 
     <div id="breakfast" class="section">
         <div class="food-grid" id="breakfast-grid">
-            <div class="glass-card food-card"><h3>Idly</h3><p>Rs.30.00</p><button onclick="orderItem('Idly', 30)">Order</button></div>
-            <div class="glass-card food-card"><h3>Dosa</h3><p>Rs.40.00</p><button onclick="orderItem('Dosa', 40)">Order</button></div>
-            <div class="glass-card food-card"><h3>Vada</h3><p>Rs.25.00</p><button onclick="orderItem('Vada', 25)">Order</button></div>
-            <div class="glass-card food-card"><h3>Poori</h3><p>Rs.35.00</p><button onclick="orderItem('Poori', 35)">Order</button></div>
-            <div class="glass-card food-card"><h3>Pongal</h3><p>Rs.40.00</p><button onclick="orderItem('Pongal', 40)">Order</button></div>
         </div>
     </div>
 
     <div id="lunch" class="section">
         <div class="food-grid" id="lunch-grid">
-            <div class="glass-card food-card"><h3>Full Meals</h3><p>Rs.80.00</p><button onclick="orderItem('Full Meals', 80)">Order</button></div>
-            <div class="glass-card food-card"><h3>Veg Biryani</h3><p>Rs.90.00</p><button onclick="orderItem('Veg Biryani', 90)">Order</button></div>
-            <div class="glass-card food-card"><h3>Fried Rice</h3><p>Rs.70.00</p><button onclick="orderItem('Fried Rice', 70)">Order</button></div>
         </div>
     </div>
 
     <div id="tea" class="section">
         <div class="food-grid" id="tea-grid">
-            <div class="glass-card food-card"><h3>Tea</h3><p>Rs.10.00</p><button onclick="orderItem('Tea', 10)">Order</button></div>
-            <div class="glass-card food-card"><h3>Coffee</h3><p>Rs.15.00</p><button onclick="orderItem('Coffee', 15)">Order</button></div>
-            <div class="glass-card food-card"><h3>Samosa</h3><p>Rs.20.00</p><button onclick="orderItem('Samosa', 20)">Order</button></div>
+        </div>
+    </div>
+
+    <div id="combos" class="section">
+        <div class="food-grid" id="combos-grid">
         </div>
     </div>
 </div>
@@ -165,7 +168,7 @@
 <script>
     window.onload = function() {
         applyTimeBasedMenu();
-        loadAdminItems();
+        loadMenuAndCombos();
     };
 
     function showSection(id, btn) {
@@ -184,10 +187,12 @@
         const breakfastTab = document.getElementById('breakfast-tab');
         const lunchTab = document.getElementById('lunch-tab');
         const teaTab = document.getElementById('tea-tab');
+        const combosTab = document.getElementById('combos-tab');
 
         breakfastTab.style.display = canShowBreakfast ? 'inline-block' : 'none';
         lunchTab.style.display = canShowLunch ? 'inline-block' : 'none';
         teaTab.style.display = 'inline-block';
+        combosTab.style.display = 'inline-block';
 
         if (canShowBreakfast) {
             showSection('breakfast', breakfastTab);
@@ -201,20 +206,33 @@
         }
     }
 
-    function loadAdminItems() {
+    function loadMenuAndCombos() {
         const bGrid = document.getElementById('breakfast-grid');
         const lGrid = document.getElementById('lunch-grid');
         const tGrid = document.getElementById('tea-grid');
+        const cGrid = document.getElementById('combos-grid');
+
+        bGrid.innerHTML = "";
+        lGrid.innerHTML = "";
+        tGrid.innerHTML = "";
+        cGrid.innerHTML = "";
 
         fetch('/api/menu')
             .then(res => res.json())
             .then(menu => {
+                if (!menu || menu.length === 0) {
+                    bGrid.innerHTML = emptyMessage("No breakfast items available.");
+                    lGrid.innerHTML = emptyMessage("No lunch items available.");
+                    tGrid.innerHTML = emptyMessage("No tea items available.");
+                    return;
+                }
+
                 menu.forEach(item => {
                     const cardHTML = `
                         <div class="glass-card food-card">
                             <h3>${item.name}</h3>
                             <p>${formatMoney(item.price)}</p>
-                            <button onclick="orderItem('${item.name}', ${item.price})">Order</button>
+                            <button onclick='orderItem(${JSON.stringify(item.name)}, ${Number(item.price)})'>Order</button>
                         </div>
                     `;
 
@@ -226,10 +244,41 @@
                         tGrid.innerHTML += cardHTML;
                     }
                 });
+
+                if (bGrid.innerHTML === "") bGrid.innerHTML = emptyMessage("No breakfast items available.");
+                if (lGrid.innerHTML === "") lGrid.innerHTML = emptyMessage("No lunch items available.");
+                if (tGrid.innerHTML === "") tGrid.innerHTML = emptyMessage("No tea items available.");
             })
             .catch(err => {
                 console.error("Error loading custom menu items:", err);
             });
+
+        fetch('/api/combos')
+            .then(res => res.json())
+            .then(combos => {
+                if (!combos || combos.length === 0) {
+                    cGrid.innerHTML = emptyMessage("No combos available.");
+                    return;
+                }
+
+                cGrid.innerHTML = combos.map(combo => `
+                    <div class="glass-card food-card">
+                        <img src="${combo.img}" alt="${combo.name}">
+                        <h3>${combo.name}</h3>
+                        <p>${combo.items}</p>
+                        <p>${formatMoney(combo.price)}</p>
+                        <button onclick='orderItem(${JSON.stringify(combo.name)}, ${Number(combo.price)})'>Order</button>
+                    </div>
+                `).join('');
+            })
+            .catch(err => {
+                console.error("Error loading combos:", err);
+                cGrid.innerHTML = emptyMessage("Failed to load combos.");
+            });
+    }
+
+    function emptyMessage(text) {
+        return `<div class="glass-card food-card" style="grid-column:1/-1; color:var(--text-muted);">${text}</div>`;
     }
 
     function orderItem(itemName, pricePerItem) {

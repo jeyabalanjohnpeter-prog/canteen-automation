@@ -125,16 +125,33 @@ async function seedDefaultData() {
       console.log('Default combos seeded.');
     }
 
-    // 3. Seed Menu Items (if none exist in canteenMenu)
-    const menuCount = await MenuItem.countDocuments();
-    if (menuCount === 0) {
-      await MenuItem.insertMany([
-        { name: 'Masala Dosa', price: 50, category: 'breakfast' },
-        { name: 'Paneer Butter Masala', price: 120, category: 'lunch' },
-        { name: 'Tea', price: 10, category: 'tea' },
-        { name: 'Coffee', price: 15, category: 'tea' }
-      ]);
-      console.log('Default menu items seeded.');
+    // 3. Seed any missing default menu items without duplicating existing rows.
+    const defaultMenuItems = [
+      { name: 'Idly', price: 30, category: 'breakfast' },
+      { name: 'Dosa', price: 40, category: 'breakfast' },
+      { name: 'Vada', price: 25, category: 'breakfast' },
+      { name: 'Poori', price: 35, category: 'breakfast' },
+      { name: 'Pongal', price: 40, category: 'breakfast' },
+      { name: 'Masala Dosa', price: 50, category: 'breakfast' },
+      { name: 'Full Meals', price: 80, category: 'lunch' },
+      { name: 'Veg Biryani', price: 90, category: 'lunch' },
+      { name: 'Fried Rice', price: 70, category: 'lunch' },
+      { name: 'Paneer Butter Masala', price: 120, category: 'lunch' },
+      { name: 'Tea', price: 10, category: 'tea' },
+      { name: 'Coffee', price: 15, category: 'tea' },
+      { name: 'Samosa', price: 20, category: 'tea' }
+    ];
+
+    const menuSeedResults = await Promise.all(defaultMenuItems.map(item =>
+      MenuItem.updateOne(
+        { name: item.name, category: item.category },
+        { $setOnInsert: item },
+        { upsert: true }
+      )
+    ));
+    const insertedMenuItems = menuSeedResults.filter(result => result.upsertedCount > 0).length;
+    if (insertedMenuItems > 0) {
+      console.log(`Seeded ${insertedMenuItems} missing default menu items.`);
     }
   } catch (err) {
     console.error('Error seeding default database records:', err);
@@ -191,6 +208,27 @@ app.post('/api/users', async (req, res) => {
       return res.status(409).json({ error: 'Username already exists' });
     }
     res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    if (user.role === 'admin') {
+      const adminCount = await User.countDocuments({ role: 'admin' });
+      if (adminCount <= 1) {
+        return res.status(400).json({ error: 'Cannot remove the last admin user' });
+      }
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ success: true, message: 'User removed successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
